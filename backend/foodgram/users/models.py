@@ -15,12 +15,12 @@ class User(AbstractUser):
         )],
         verbose_name='Никнейм',
     )
-    password = models.CharField(
-        max_length=50,
-        blank=False,
-        verbose_name='Пароль',
+    # password = models.CharField(
+    #     max_length=50,
+    #     blank=False,
+    #     verbose_name='Пароль',
 
-    )
+    # )
     email = models.EmailField(
         max_length=254,
         unique=True,

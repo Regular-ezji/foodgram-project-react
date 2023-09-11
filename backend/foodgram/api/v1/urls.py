@@ -1,32 +1,30 @@
-from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (FavoriteViewSet, IngredientViewSet, RecipeViewSet,
+from .views import (FollowViewSet, IngredientViewSet, RecipeViewSet,
                     SubscriptionsListViewSet, TagViewSet, UserViewSet,
-                    get_token)
+                    get_token, logout)
 
 router = DefaultRouter()
+router.register(
+    'users/subscriptions',
+    SubscriptionsListViewSet,
+    basename='subscriptions_list'
+)
 router.register(r'users', UserViewSet)
 router.register(r'recipes', RecipeViewSet)
 router.register(r'tags', TagViewSet)
 router.register(r'ingredients', IngredientViewSet)
 
+router.register(
+    r'users/(?P<id>\d+)/subscribe',
+    FollowViewSet,
+    basename='subscribe'
+)
+
+
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/token/login/', get_token, name='token'),
-    # path(
-    #     'recipes/<int:user_id>/subscribe/',
-    #     FollowCreateDestroyViewSet.as_view()
-    # )
-    # path('auth/token/logout/', logout, name='logout'),
-    # path('users/'),
-    # path(
-    #     'users/subscriptions/',
-    #     SubscriptionsListViewSet.as_view(),
-    # ),
-    # path(
-    #     'users/<int:user_id>/subscribe/',
-    #     FollowCreateDestroyViewSet.as_view()
-    # )
+    path('auth/token/logout/', logout, name='logout')
 ]

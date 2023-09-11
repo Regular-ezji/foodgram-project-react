@@ -1,23 +1,24 @@
 from django.contrib.auth.hashers import check_password
+from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from djoser import utils
-from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
-from rest_framework import filters, status, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredients,
+                            ShoppingCart, Tag)
+from rest_framework import status, viewsets
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-from users.models import User
+from users.models import Follow, User
 
+from .filters import IngredientFilter, RecipeFilter
 from .mixins import (CreateDestroyViewSet, CreateListDestroyViewSet,
-                     CreateListRetriveViewSet, CreateViewSet, ListViewSet,
-                     RetrieveListViewSet)
-from .serializers import (ChangePasswordSerializer, FavoriteSerializer,
-                          FollowSerializer, GetRecipeSerializer,
-                          IngredientSerializer, RecipeSerializer,
-                          ShoppingCartSerializer, SignInSerializer,
-                          SubscriptionsListSerializer, TagSerializer,
-                          UserSerializer)
+                     ListViewSet, RetrieveListViewSet)
+from .serializers import (ChangePasswordSerializer, FollowSerializer,
+                          GetRecipeSerializer, IngredientSerializer,
+                          RecipeSerializer, ShortRecipeSerializer,
+                          SignInSerializer, TagSerializer, UserSerializer)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -27,16 +28,16 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny, )
 
     @action(
-        methods=['get'],
+        methods=['get', ],
         detail=False,
         permission_classes=(IsAuthenticated, )
     )
     def me(self, request):
-        serializer = UserSerializer(self.request.user)
+        serializer = self.get_serializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
-            methods=['post'],
+            methods=['post', ],
             detail=False,
             permission_classes=(IsAuthenticated, )
     )
@@ -48,14 +49,13 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.validated_data['current_password'],
             current_user.password
         ):
-            message = 'Неверный пароль!'
-            return Response(message, status=status.HTTP_204_NO_CONTENT)
+            message = {'message': 'Неверный пароль!'}
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
         current_user.set_password(
             serializer._validated_data['new_password']
             )
         current_user.save()
-        message = 'Пароль успешно изменен!'
-        return Response(message, status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['POST'])
@@ -65,9 +65,9 @@ def get_token(request):
     serializer.is_valid(raise_exception=True)
     email = serializer.validated_data['email']
     user = get_object_or_404(User, email=email)
-    token = AccessToken.for_user(user)
+    token, _ = Token.objects.get_or_create(user=user)
     return Response(
-        {'token': str(token)},
+        {'auth_token': str(token)},
         status=status.HTTP_200_OK
     )
 
@@ -76,16 +76,20 @@ class TagViewSet(RetrieveListViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (AllowAny, )
+    pagination_class = None
 
 
 class IngredientViewSet(RetrieveListViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny, )
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
+    pagination_class = None
 
 
 class FavoriteViewSet(CreateDestroyViewSet):
-    serializer_class = FavoriteSerializer
+    serializer_class = ShortRecipeSerializer
     permission_classes = (IsAuthenticated, )
 
 
@@ -93,11 +97,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = (IsAuthenticated, )
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
-            shop = get_object_or_404(ShoppingCart, user=self.request.user)
-            print(shop, ' МАТЬ ЕБААААААААААААААААААЛ')
             return GetRecipeSerializer
         return RecipeSerializer
 
@@ -108,7 +112,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def favorite(self, request, pk):
         recipe = get_object_or_404(Recipe, pk=pk)
         if request.method == 'POST':
-            print(recipe)
             if Favorite.objects.filter(
                 user=request.user,
                 recipe=recipe
@@ -119,7 +122,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             favorite = Favorite(user=request.user, recipe=recipe)
             favorite.save()
-            data = FavoriteSerializer(recipe).data
+            data = ShortRecipeSerializer(recipe).data
             return Response(
                 data,
                 status=status.HTTP_201_CREATED
@@ -149,7 +152,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             shopping_cart = ShoppingCart(user=request.user, recipe=recipe)
             shopping_cart.save()
-            data = ShoppingCartSerializer(recipe).data
+            data = ShortRecipeSerializer(recipe).data
             return Response(
                 data,
                 status=status.HTTP_201_CREATED
@@ -165,80 +168,69 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_204_NO_CONTENT
         )
 
-    @action(detail=True, methods=['post'])
+    @action(detail=False, methods=['get', ])
     def download_shopping_cart(self, request):
         filename = 'shopping_list.txt'
-        pass
+        user = request.user
+        ingredients = RecipeIngredients.objects.filter(
+            recipe__ShoppingCartRecipe__user=user
+        ).values(
+            'ingredient'
+        ).annotate(
+            total_amount=Sum('amount')
+        ).values_list(
+            'ingredient__name', 'total_amount', 'ingredient__measurement_unit'
+        )
+        shopping_list = ''
+        for ingredient in ingredients:
+            shopping_list += '{} - {} {}. \n'.format(*ingredient)
+
+        response = HttpResponse(
+            shopping_list, content_type='text/plain; charset=UTF-8'
+        )
+        response['Content-Disposition'] = (
+            'attachment; filename={0}'.format(filename)
+        )
+        return response
 
 
 class FollowViewSet(CreateListDestroyViewSet):
+    permission_classes = (IsAuthenticated, )
+    serializer_class = FollowSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return user.follower.all()
+
+    def perform_create(self, serializer):
+        author = get_object_or_404(User, pk=self.kwargs.get('id'))
+
+        serializer.save(
+            user=self.request.user,
+            author=author
+        )
+
+    def delete(self, request, id):
+        author = get_object_or_404(User, pk=self.kwargs.get('id'))
+        follow = get_object_or_404(
+            Follow,
+            user=request.user,
+            author=author
+        )
+        follow.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SubscriptionsListViewSet(ListViewSet):
     serializer_class = FollowSerializer
     permission_classes = (IsAuthenticated, )
 
     def get_queryset(self):
-        return self.request.user.follower.all()
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        return Follow.objects.filter(user=self.request.user)
 
 
-class SubscriptionsListViewSet(ListViewSet):
-    serializer_class = SubscriptionsListSerializer                   
-    permission_classes = (IsAuthenticated, )
-
-    # def get_object(self):
-    #     user_id = self.get['user_id']
-    #     user = get_object_or_404(CustomUser, user_id)
-
-
-# class LogoutViewSet(CreateViewSet):
-#     permission_classes = (IsAuthenticated,)
-
-#     def post(self, request):
-#         access_token = request.data.get('token')
-#         if not access_token:
-#             return Response({'detail': 'Token is required.'}, status=status.HTTP_401_UNAUTHORIZED)
-
-#         try:
-#             token = AccessToken(access_token)
-#             token.blacklist()
-#         except:
-#             return Response({'detail': 'Invalid token.'}, status=status.HTTP_401_UNAUTHORIZED)
-
-#         return Response(status=status.HTTP_204_NO_CONTENT)
-
-#     @action(
-#             methods=['post'],
-#             detail=False,
-#             permission_classes=(IsAuthenticated, )
-#     )
-#     def logout(request):
-#         access_token = request.data.get('token')
-#         if not access_token:
-#             return Response({'detail': 'Token is required.'}, status=status.HTTP_401_UNAUTHORIZED)
-#         token = AccessToken(access_token)
-#         token.blacklist()
-
-#         return Response(status=status.HTTP_204_NO_CONTENT)
-#         # refresh_token = request.data['refresh_token']
-#         # token = RefreshToken(refresh_token)
-#         # user = self.request.user
-#         # token = get_token(user)
-#         # token.blacklist()
-#         # return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-
-
-
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def logout(request):
-#     print(request.user)
-#     print(request.headers)
-#     print(request)
-#     print(123)
-#     access_token = request.headers.get('Authorization')
-#     if not access_token:
-#         return Response({'detail': 'Token is required.'}, status=status.HTTP_401_UNAUTHORIZED)
-#     access_token.blacklist()
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    Token.objects.filter(user_id=request.user.id).delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

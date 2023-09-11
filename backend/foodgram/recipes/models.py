@@ -12,7 +12,6 @@ class Ingredient(models.Model):
     measurement_unit = models.CharField(
         max_length=150,
         blank=False,
-        # choices=choices(???),
         verbose_name='Единица измерения',
         help_text='Единица измерения',
     )
@@ -36,7 +35,7 @@ class Tag(models.Model):
         help_text='HEX код цвета',
     )
     slug = models.SlugField(
-        max_length=50,
+        max_length=255,
         unique=True,
         verbose_name='Сокращенное название тега для включения в URL-адрес',
         help_text='Сокращенное название тега для включения в URL-адрес',
@@ -92,14 +91,14 @@ class Favorite(models.Model):
         User,
         blank=False,
         on_delete=models.CASCADE,
-        related_name='UsersFavorite',
+        related_name='users_favorite',
         verbose_name='Пользователь',
     )
     recipe = models.ForeignKey(
         Recipe,
         blank=False,
         on_delete=models.CASCADE,
-        related_name='FavoriteRecipe',
+        related_name='favorite_recipe',
         verbose_name='Рецепт',
 
     )
