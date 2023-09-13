@@ -37,9 +37,9 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
-            methods=['post', ],
-            detail=False,
-            permission_classes=(IsAuthenticated, )
+        methods=['post', ],
+        detail=False,
+        permission_classes=(IsAuthenticated, )
     )
     def set_password(self, request, *args, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data)
