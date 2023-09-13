@@ -11,6 +11,7 @@ from .validators import username_validator
 
 
 class UserSerializer(serializers.ModelSerializer):
+    '''Сериализатор для работы с пользователями'''
     username = serializers.CharField(
         max_length=150,
         validators=[username_validator],
@@ -59,6 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class IngredientSerializer(serializers.ModelSerializer):
+    '''Сериализатор для работы с ингредиентами'''
     class Meta:
         model = Ingredient
         fields = (
@@ -69,6 +71,7 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
+    '''Сериализатор для работы с тегами'''
     class Meta:
         model = Tag
         fields = (
@@ -85,6 +88,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
+    '''Сериализатор для работы с ингредиентами рецепта'''
     amount = serializers.IntegerField()
     id = serializers.PrimaryKeyRelatedField(
         source='ingredient',
@@ -102,6 +106,7 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
 
 
 class GetRecipeIngredientsSerializer(serializers.ModelSerializer):
+    '''Сериализатор для получения ингредиентов рецепта'''
     id = serializers.ReadOnlyField(source='ingredient.id')
     measurement_unit = serializers.ReadOnlyField(
         source='ingredient.measurement_unit'
@@ -119,6 +124,7 @@ class GetRecipeIngredientsSerializer(serializers.ModelSerializer):
 
 
 class GetRecipeSerializer(serializers.ModelSerializer):
+    '''Сериализатор для получения рецептов'''
     tags = TagSerializer(read_only=True, many=True)
     author = UserSerializer(read_only=True)
     image = Base64ImageField(max_length=None, use_url=True)
@@ -170,6 +176,7 @@ class GetRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
+    '''Сериализатор для работы с рецептами'''
     author = UserSerializer(read_only=True)
     ingredients = RecipeIngredientsSerializer(many=True)
     image = Base64ImageField(max_length=None, use_url=True)
@@ -249,6 +256,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class SignInSerializer(serializers.Serializer):
+    '''Сериализатор для получения токена авторизации'''
     password = serializers.CharField(
         max_length=150,
         required=True,
@@ -268,6 +276,7 @@ class SignInSerializer(serializers.Serializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
+    '''Сериализатор для смены пароля'''
     new_password = serializers.CharField(
         max_length=150,
         required=True,
@@ -287,6 +296,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    '''Сериализатор для работы с подписками'''
     id = serializers.ReadOnlyField(source='author.id')
     email = serializers.ReadOnlyField(source='author.email')
     username = serializers.ReadOnlyField(source='author.username')
@@ -346,6 +356,7 @@ class FollowSerializer(serializers.ModelSerializer):
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
+    '''Сериализатор для получения краткой информации о рецепте'''
     image = Base64ImageField()
 
     class Meta:

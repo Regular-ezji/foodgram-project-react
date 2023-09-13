@@ -13,8 +13,7 @@ from rest_framework.response import Response
 from users.models import Follow, User
 
 from .filters import IngredientFilter, RecipeFilter
-from .mixins import (CreateDestroyViewSet, CreateListDestroyViewSet,
-                     ListViewSet, RetrieveListViewSet)
+from .mixins import CreateListDestroyViewSet, ListViewSet, RetrieveListViewSet
 from .serializers import (ChangePasswordSerializer, FollowSerializer,
                           GetRecipeSerializer, IngredientSerializer,
                           RecipeSerializer, ShortRecipeSerializer,
@@ -22,6 +21,7 @@ from .serializers import (ChangePasswordSerializer, FollowSerializer,
 
 
 class UserViewSet(viewsets.ModelViewSet):
+    '''Вьюсет для работы с пользователями'''
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'id'
@@ -59,6 +59,7 @@ class UserViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def get_token(request):
+    '''Вью функция для получения токена авторизации'''
     serializer = SignInSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     email = serializer.validated_data['email']
@@ -71,6 +72,7 @@ def get_token(request):
 
 
 class TagViewSet(RetrieveListViewSet):
+    '''Вьюсет для работы с тегами'''
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (AllowAny, )
@@ -78,6 +80,7 @@ class TagViewSet(RetrieveListViewSet):
 
 
 class IngredientViewSet(RetrieveListViewSet):
+    '''Вьюсет для работы с ингредиентами'''
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny, )
@@ -86,12 +89,8 @@ class IngredientViewSet(RetrieveListViewSet):
     pagination_class = None
 
 
-class FavoriteViewSet(CreateDestroyViewSet):
-    serializer_class = ShortRecipeSerializer
-    permission_classes = (IsAuthenticated, )
-
-
 class RecipeViewSet(viewsets.ModelViewSet):
+    '''Вьюсет для работы с рецептами'''
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = (IsAuthenticated, )
@@ -193,6 +192,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 
 class FollowViewSet(CreateListDestroyViewSet):
+    '''Вьюсет для работы с подписками'''
     permission_classes = (IsAuthenticated, )
     serializer_class = FollowSerializer
 
@@ -220,6 +220,7 @@ class FollowViewSet(CreateListDestroyViewSet):
 
 
 class SubscriptionsListViewSet(ListViewSet):
+    '''Вьюсет для получения всех подписок пользователя'''
     serializer_class = FollowSerializer
     permission_classes = (IsAuthenticated, )
 
