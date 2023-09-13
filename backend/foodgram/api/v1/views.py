@@ -51,9 +51,7 @@ class UserViewSet(viewsets.ModelViewSet):
         ):
             message = {'message': 'Неверный пароль!'}
             return Response(message, status=status.HTTP_400_BAD_REQUEST)
-        current_user.set_password(
-            serializer._validated_data['new_password']
-            )
+        current_user.set_password(serializer._validated_data['new_password'])
         current_user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
