@@ -18,6 +18,7 @@ from .serializers import (ChangePasswordSerializer, FollowSerializer,
                           GetRecipeSerializer, IngredientSerializer,
                           RecipeSerializer, ShortRecipeSerializer,
                           SignInSerializer, TagSerializer, UserSerializer)
+from .utils import create_favorite_or_shopping_cart_obj
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -97,6 +98,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
+    def get_queryset(self):
+        user = self.request.user
+        is_favorited = self.request.query_params.get('is_favorited') or 0
+        if int(is_favorited) == 1:
+            return Recipe.objects.filter(favorite_recipe__user=user)
+        is_in_shopping_cart = self.request.query_params.get(
+            'is_in_shopping_cart'
+        ) or 0
+        if int(is_in_shopping_cart) == 1:
+            return Recipe.objects.filter(shopping_cart_recipe__user=user)
+        return Recipe.objects.all()
+
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return GetRecipeSerializer
@@ -107,77 +120,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post', 'delete'])
     def favorite(self, request, pk):
-        recipe = get_object_or_404(Recipe, pk=pk)
-        if request.method == 'POST':
-            if Favorite.objects.filter(
-                user=request.user,
-                recipe=recipe
-            ).exists():
-                return Response(
-                    'Рецепт уже добавлен в избранное!',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            favorite = Favorite(user=request.user, recipe=recipe)
-            favorite.save()
-            data = ShortRecipeSerializer(recipe).data
-            return Response(
-                data,
-                status=status.HTTP_201_CREATED
-            )
-        favorite_recipe = get_object_or_404(
-            Favorite,
-            user=request.user,
-            recipe=recipe
-        )
-        favorite_recipe.delete()
-        return Response(
-            'Рецепт был удален из избранного',
-            status=status.HTTP_204_NO_CONTENT
+        return create_favorite_or_shopping_cart_obj(
+            request=request,
+            model=Favorite,
+            pk=pk
         )
 
     @action(detail=True, methods=['post', 'delete'])
     def shopping_cart(self, request, pk):
-        recipe = get_object_or_404(Recipe, pk=pk)
-        if request.method == 'POST':
-            if ShoppingCart.objects.filter(
-                user=request.user,
-                recipe=recipe
-            ).exists():
-                return Response(
-                    'Рецепт уже добавлен в корзину!',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            shopping_cart = ShoppingCart(user=request.user, recipe=recipe)
-            shopping_cart.save()
-            data = ShortRecipeSerializer(recipe).data
-            return Response(
-                data,
-                status=status.HTTP_201_CREATED
-            )
-        shopping_cart_recipe = get_object_or_404(
-            ShoppingCart,
-            user=request.user,
-            recipe=recipe
-        )
-        shopping_cart_recipe.delete()
-        return Response(
-            'Рецепт был удален из корзины',
-            status=status.HTTP_204_NO_CONTENT
+        return create_favorite_or_shopping_cart_obj(
+            request=request,
+            model=ShoppingCart,
+            pk=pk
         )
 
     @action(detail=False, methods=['get', ])
     def download_shopping_cart(self, request):
         filename = 'shopping_list.txt'
         user = request.user
-        ingredients = RecipeIngredients.objects.filter(
-            recipe__ShoppingCartRecipe__user=user
-        ).values(
-            'ingredient'
-        ).annotate(
-            total_amount=Sum('amount')
-        ).values_list(
-            'ingredient__name', 'total_amount', 'ingredient__measurement_unit'
-        )
+        ingredients = RecipeIngredients.get_sum_ingredients(user=user)
         shopping_list = ''
         for ingredient in ingredients:
             shopping_list += '{} - {} {}. \n'.format(*ingredient)

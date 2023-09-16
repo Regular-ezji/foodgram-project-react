@@ -1,4 +1,6 @@
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
+from django.db.models import Sum
 from users.models import User
 
 
@@ -31,6 +33,12 @@ class Tag(models.Model):
         max_length=7,
         default='#ffffff',
         blank=False,
+        validators=[
+            RegexValidator(
+                regex=r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+                message='Проверьте правильность написания HEX кода'
+            )
+        ],
         verbose_name='HEX код цвета',
         help_text='HEX код цвета',
     )
@@ -77,7 +85,13 @@ class Recipe(models.Model):
         verbose_name='Тег',
         help_text='Тег',
     )
-    cooking_time = models.SmallIntegerField(
+    cooking_time = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(
+                limit_value=1,
+                message='Время готовки не может быть меньше 1 минуты'
+            )
+        ],
         verbose_name='Время приготовления, мин.',
         help_text='Время приготовления, мин.',
     )
@@ -104,9 +118,7 @@ class Favorite(models.Model):
     )
 
     def __str__(self):
-        return (
-            f'Избранный рецепт {self.recipe_id} у пользователя {self.user_id}'
-        )
+        return 'Избранное'
 
 
 class ShoppingCart(models.Model):
@@ -114,28 +126,46 @@ class ShoppingCart(models.Model):
         User,
         blank=False,
         on_delete=models.CASCADE,
-        related_name='UsersShoppingCart',
+        related_name='users_shopping_cart',
         verbose_name='Пользователь',
     )
     recipe = models.ForeignKey(
         Recipe,
         blank=False,
         on_delete=models.CASCADE,
-        related_name='ShoppingCartRecipe',
+        related_name='shopping_cart_recipe',
         verbose_name='Рецепт',
 
     )
 
     def __str__(self):
-        return (
-            f'Рецепт {self.recipe_id} в корзине у пользователя {self.user_id}'
-        )
+        return 'Корзина'
 
 
 class RecipeIngredients(models.Model):
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    amount = models.PositiveSmallIntegerField(verbose_name='Количество')
+    amount = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(
+                limit_value=1,
+                message='Время готовки не может быть меньше 1 минуты'
+            )
+        ],
+        verbose_name='Количество'
+    )
+
+    @classmethod
+    def get_sum_ingredients(cls, user):
+        return cls.objects.filter(
+            recipe__shopping_cart_recipe__user=user
+        ).values(
+            'ingredient'
+        ).annotate(
+            total_amount=Sum('amount')
+        ).values_list(
+            'ingredient__name', 'total_amount', 'ingredient__measurement_unit'
+        )
 
     def __str__(self):
         return f'{self.ingredient} {self.recipe}'

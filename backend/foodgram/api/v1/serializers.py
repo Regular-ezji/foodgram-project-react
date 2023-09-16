@@ -201,6 +201,12 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Один из ингредиентов повторяется несколько раз!'
             )
+        tags = self.initial_data.get('tags')
+        tags_list = [tag for tag in tags]
+        if len(tags_list) != len(set(tags_list)):
+            raise serializers.ValidationError(
+                'Один из тегов повторяется несколько раз!'
+            )
         return data
 
     def create(self, validated_data):
@@ -339,7 +345,7 @@ class FollowSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         request = self.context.get('request')
-        user_id = self.context.get('request').user.id
+        user_id = request.user.id
         author_id = int(request.parser_context['kwargs']['id'])
         if Follow.objects.filter(
             user=user_id,
