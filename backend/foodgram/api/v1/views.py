@@ -1,5 +1,4 @@
 from django.contrib.auth.hashers import check_password
-from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -16,8 +15,8 @@ from .filters import IngredientFilter, RecipeFilter
 from .mixins import CreateListDestroyViewSet, ListViewSet, RetrieveListViewSet
 from .serializers import (ChangePasswordSerializer, FollowSerializer,
                           GetRecipeSerializer, IngredientSerializer,
-                          RecipeSerializer, ShortRecipeSerializer,
-                          SignInSerializer, TagSerializer, UserSerializer)
+                          RecipeSerializer, SignInSerializer, TagSerializer,
+                          UserSerializer)
 from .utils import create_favorite_or_shopping_cart_obj
 
 
