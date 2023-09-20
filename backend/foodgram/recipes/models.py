@@ -156,8 +156,8 @@ class RecipeIngredients(models.Model):
     )
 
     @classmethod
-    def get_sum_ingredients(cls, user):
-        return cls.objects.filter(
+    def get_shopping_list(cls, user):
+        ingredients = cls.objects.filter(
             recipe__shopping_cart_recipe__user=user
         ).values(
             'ingredient'
@@ -166,6 +166,10 @@ class RecipeIngredients(models.Model):
         ).values_list(
             'ingredient__name', 'total_amount', 'ingredient__measurement_unit'
         )
+        shopping_list = ''
+        for ingredient in ingredients:
+            shopping_list += '{} - {} {}. \n'.format(*ingredient)
+        return shopping_list
 
     def __str__(self):
         return f'{self.ingredient} {self.recipe}'

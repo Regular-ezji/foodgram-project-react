@@ -137,11 +137,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         filename = 'shopping_list.txt'
         user = request.user
-        ingredients = RecipeIngredients.get_sum_ingredients(user=user)
-        shopping_list = ''
-        for ingredient in ingredients:
-            shopping_list += '{} - {} {}. \n'.format(*ingredient)
-
+        shopping_list = RecipeIngredients.get_shopping_list(user=user)
         response = HttpResponse(
             shopping_list, content_type='text/plain; charset=UTF-8'
         )
