@@ -79,6 +79,8 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
+          pwd
+          ls
           sudo docker compose down
           sudo docker image rm regularezji/foodgram-project-backend:latest
           touch .env
