@@ -92,6 +92,6 @@ jobs:
           echo DB_PORT=${{ secrets.DB_PORT }} >> .env
           sudo docker pull regularezji/foodgram-project-backend:latest
           sudo docker compose up -d
-          sudo docker exec -ti app python manage.py collectstatic --no-input
-          sudo docker exec -ti app python manage.py makemigrations
-          sudo docker exec -ti app python manage.py migrate --noinput
+          sudo docker exec app python manage.py collectstatic --no-input
+          sudo docker exec app python manage.py makemigrations
+          sudo docker exec app python manage.py migrate --noinput
