@@ -79,7 +79,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
-          sudo docker-compose down
+          sudo docker compose down
           sudo docker image rm regularezji/foodgram-project-backend:latest
           touch .env
           echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
@@ -89,7 +89,7 @@ jobs:
           echo DB_HOST=${{ secrets.DB_HOST }} >> .env
           echo DB_PORT=${{ secrets.DB_PORT }} >> .env
           sudo docker pull regularezji/foodgram-project-backend:latest
-          sudo docker-compose up -d
-          sudo docker exec -ti infra-backend python manage.py collectstatic --no-input
-          sudo docker exec -ti infra-backend python manage.py makemigrations
-          sudo docker exec -ti infra-backend python manage.py migrate --noinput
+          sudo docker compose up -d
+          sudo docker exec -ti app python manage.py collectstatic --no-input
+          sudo docker exec -ti app python manage.py makemigrations
+          sudo docker exec -ti app python manage.py migrate --noinput
