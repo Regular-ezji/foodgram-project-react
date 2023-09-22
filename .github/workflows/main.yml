@@ -88,10 +88,8 @@ jobs:
           echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
           echo DB_HOST=${{ secrets.DB_HOST }} >> .env
           echo DB_PORT=${{ secrets.DB_PORT }} >> .env
-
           sudo docker pull regularezji/foodgram-project-backend:latest
-          
+          sudo docker-compose up -d
           sudo docker exec -ti regularezji_app_1 python manage.py collectstatic --no-input
           sudo docker exec -ti regularezji_app_1 python manage.py makemigrations
           sudo docker exec -ti regularezji_app_1 python manage.py migrate --noinput
-          sudo docker-compose up -d
