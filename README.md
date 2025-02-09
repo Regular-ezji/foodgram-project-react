@@ -1,40 +1,35 @@
 # Foodrgam
 
- Продуктовый помощник - дипломный проект части курса на Яндекс.Практикум по Django и DRF.
+ Food Assistant - Graduate work for the Yandex.Practicum Course on Django and DRF.
 
- Это онлайн-сервис и API для него. 
+ This is an online service and its API.
 
- Здесь пользователи могут публиковать рецепты,
+ Here, users can:
+- Publish recipes,
+- Subscribe to other users' publications,
+- Download a shopping list before heading to the store. :grinning:
 
- Подписываться на публикации других пользователей,
+## About the Project
 
- Перед походом в магазин Можно будет скачать список продуктов :grinning:
-
-## О проекте 
-
-- Проект завернут в Docker-контейнерах;
-- Проект был развернут на сервере: <http://158.160.80.191/>
+- The project is wrapped in Docker containers;
+- The project was deployed on the server: <http://158.160.80.191/>
   
-## Стек технологий
+## Tech Stack
 - Python
 - Django
 - Django REST Framework
 - PostgreSQL
 - Docker
 
-## Зависимости
-- Перечислены в файле backend/requirements.txt
+## Dependencies
+- Listed in the file backend/requirements.txt
 
 
-## Для запуска на локальной машине
+## To Run Locally
 
-1. Слонируйте репозиторий к себе на гитхаб
-2. Из директории `/infra/` выполните команду `docker-compose up -d --build`
-3. Выполните миграции `python manage.py makemigrations`, `python manage.py migrate`
-4. Создайте Администратора `python manage.py createsuperuser`
-5. Соберите статику `python manage.py collectstatic`
-6. Загрузите фикстуры в базу данных `python recipes/utils.py`
-
-Креды:
-  Log: admin
-  Pass: admin12345
+1. Clone the repository to your GitHub.
+2. From the `/infra/` directory, run the command: `docker-compose up -d --build`
+3. Perform migrations: `python manage.py makemigrations`, `python manage.py migrate`
+4. Create an administrator `python manage.py createsuperuser`
+5. Collect static files `python manage.py collectstatic`
+6. Load fixtures into the database `python recipes/utils.py`
